@@ -1,0 +1,25 @@
+From 649cf278b0925da3f0652a3453b09a0580a8c7a2 Mon Sep 17 00:00:00 2001
+From: Till Klampaeckel <till@php.net>
+Date: Tue, 2 Jun 2009 17:37:01 +0200
+Subject: [PATCH] fixed require statement
+
+---
+ .../integration-api-plugin.php     |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/integration-api-plugin.php b/integration-api-plugin.php
+index 2233e27..93c2c30 100644
+--- a/integration-api-plugin.php
++++ b/integration-api-plugin.php
+@@ -222,7 +222,7 @@ class BBIntegrationApiPlugin {
+      * Create a new bbPress account for the specified username.
+      */
+     function _create_user($username) {
+-        require_once(BBINC . DIRECTORY_SEPARATOR . 'registration-functions.php');
++        require_once(BB_PATH . BBINC . DIRECTORY_SEPARATOR . 'registration-functions.php');
+         $api_info = (array) $this->api()->user_info();
+         $u = array();
+ 
+-- 
+1.5.6.1.1071.g76fb
+

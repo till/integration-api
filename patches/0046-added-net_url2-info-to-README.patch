@@ -1,0 +1,28 @@
+From 4783c0200af497061a051c5b56c9c6473719588c Mon Sep 17 00:00:00 2001
+From: Till Klampaeckel <till@php.net>
+Date: Mon, 15 Jun 2009 14:32:02 +0200
+Subject: [PATCH] added net_url2 info to README
+
+---
+ README |    6 +++++-
+ 1 files changed, 5 insertions(+), 1 deletions(-)
+
+diff --git a/README b/README
+index e9f55db..fb6a75a 100644
+--- a/README
++++ b/README
+@@ -4,4 +4,8 @@
+ 
+  * requires HTTP_Request2
+    * pear install HTTP_Request2
+-   * make sure that PEAR is in the include_path
+\ No newline at end of file
++   * make sure that PEAR is in the include_path
++   
++  * requires Net_URL2
++   * included as depency in HTTP_Request2
++   * pear install Net_URL2
+\ No newline at end of file
+-- 
+1.5.6.1.1071.g76fb
+

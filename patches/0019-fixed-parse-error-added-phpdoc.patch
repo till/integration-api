@@ -1,0 +1,41 @@
+From c405925d133e852de43219866e338a3c1edb7352 Mon Sep 17 00:00:00 2001
+From: Till Klampaeckel <till@php.net>
+Date: Tue, 2 Jun 2009 18:39:06 +0200
+Subject: [PATCH] fixed parse error, added phpdoc
+
+---
+ integration_api_lib.php |   14 ++++++++++++--
+ 1 files changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/integration_api_lib.php b/integration_api_lib.php
+index abd8a71..7179bea 100644
+--- a/integration_api_lib.php
++++ b/integration_api_lib.php
+@@ -32,12 +32,22 @@ class BBIntegrationApi
+     public function is_logged_in() {
+         return ! ($this->user_info() == NULL);
+     }
+-  
++
++    /**
++     * Get the user's info from the rails API
++     *
++     * @return string
++     * @uses self::$user_info
++     * @uses self::rails_cookie_value()
++     * @uses self::api_request()
++     * @todo Mathias sollte netter sein.
++     * @todo Maybe cache user_info to persist across request.
++     */
+     public function user_info() {
+         if ($this->rails_cookie_value() == NULL) {
+             return null;
+         }
+-        if (!self::$user_info)) {
++        if (!self::$user_info) {
+             $json_data = $this->api_request("user/" . $this->rails_cookie_value());
+             self::$user_info = $json_data->{'user'};
+         }
+-- 
+1.5.6.1.1071.g76fb
+

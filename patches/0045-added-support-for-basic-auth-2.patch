@@ -1,0 +1,56 @@
+From b5ecdf6b9ffe3ee6aa8644e57ef5021ac54ae8b6 Mon Sep 17 00:00:00 2001
+From: Till Klampaeckel <till@php.net>
+Date: Mon, 15 Jun 2009 13:19:47 +0200
+Subject: [PATCH] added support for basic auth, #2
+
+---
+ integration_api_lib.php |   22 ++++++++++++++++++-
+ 1 files changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/integration_api_lib.php b/integration_api_lib.php
+index 06e6e18..f61f3df 100644
+--- a/integration_api_lib.php
++++ b/integration_api_lib.php
+@@ -89,10 +89,28 @@ class BBIntegrationApi
+         if (empty($this->server_path)) {
+             return;
+         }
+-    
++        
+         try {
+             if (!($this->request instanceof HTTP_Request2)) {
++                
++                /**
++                 * Parse server_path to extract an optional username and
++                 * password for basic auth.
++                 */
++                $_url = new Net_Url2($this->server_path);
++                
++                $basic_auth_user = $_url->getUser();
++                $basic_auth_pass = $_url->getPassword();
++                
+                 $request = new HTTP_Request2($this->server_path . $query);
++                if ($basic_auth_user !== false) {
++                    if ($basic_auth_pass !== false) {
++                        $request->setAuth($basic_auth_user, $basic_auth_pass);
++                    } else {
++                        $request->setAuth($basic_auth_user);
++                    }
++                }
++                
+             } else {
+                 $request = $this->request;
+             }
+@@ -102,7 +120,7 @@ class BBIntegrationApi
+             return $body;
+ 
+         } catch (HTTP_Request2_Exception $e) {
+-          trigger_error($e->getMessage(), E_USER_WARNING);
++            trigger_error($e->getMessage(), E_USER_WARNING);
+         }
+     }
+ }
+\ No newline at end of file
+-- 
+1.5.6.1.1071.g76fb
+

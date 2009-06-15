@@ -1,0 +1,32 @@
+From 66dd9176a6b411a7c21ad6fd3f78b92bc1b63c5c Mon Sep 17 00:00:00 2001
+From: Till Klampaeckel <till@php.net>
+Date: Fri, 15 May 2009 18:01:25 +0200
+Subject: [PATCH] minors (spacing)
+
+---
+ integration_api_lib.php |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
+
+diff --git a/integration_api_lib.php b/integration_api_lib.php
+index 366bb4e..5476bc8 100644
+--- a/integration_api_lib.php
++++ b/integration_api_lib.php
+@@ -73,6 +73,7 @@ class BBIntegrationApi {
+     if (empty($this->server_path)) {
+       return;
+     }
++    
+     try {
+       if (!($this->request instanceof HTTP_Request2)) {
+         $request = new HTTP_Request2($this->server_path . $query);
+@@ -83,6 +84,7 @@ class BBIntegrationApi {
+       $body     = json_decode($response->getBody());
+ 
+       return $body;
++
+     } catch (HTTP_Request2_Exception $e) {
+       trigger_error($e->getMessage(), E_USER_WARNING);
+     }
+-- 
+1.5.6.1.1071.g76fb
+

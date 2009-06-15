@@ -1,0 +1,41 @@
+From 00f6f384e422e4a2eaf7b23815b6e41abe1fc2af Mon Sep 17 00:00:00 2001
+From: Till Klampaeckel <till@php.net>
+Date: Tue, 2 Jun 2009 18:35:52 +0200
+Subject: [PATCH] local cache for user_info (static self::$user_info)
+
+---
+ integration_api_lib.php |   10 +++++++---
+ 1 files changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/integration_api_lib.php b/integration_api_lib.php
+index 3c43b80..abd8a71 100644
+--- a/integration_api_lib.php
++++ b/integration_api_lib.php
+@@ -22,6 +22,7 @@ class BBIntegrationApi
+     public $server_path;
+     public static $cached_config_info = false;
+     public $request;
++    public static $user_info;
+ 
+     public function __construct($url) {
+         $this->server_path = $url;
+@@ -34,10 +35,13 @@ class BBIntegrationApi
+   
+     public function user_info() {
+         if ($this->rails_cookie_value() == NULL) {
+-            return NULL;
++            return null;
+         }
+-        $json_data = $this->api_request("user/" . $this->rails_cookie_value());
+-        return $json_data->{'user'};
++        if (!self::$user_info)) {
++            $json_data = $this->api_request("user/" . $this->rails_cookie_value());
++            self::$user_info = $json_data->{'user'};
++        }
++        return self::$user_info;
+     }
+ 
+     public function login_url() {
+-- 
+1.5.6.1.1071.g76fb
+

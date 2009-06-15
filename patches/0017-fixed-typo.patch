@@ -1,0 +1,25 @@
+From 0ece220f1770d065d0ca09842f8f2d65164ab789 Mon Sep 17 00:00:00 2001
+From: Till Klampaeckel <till@php.net>
+Date: Tue, 2 Jun 2009 18:28:19 +0200
+Subject: [PATCH] fixed typo
+
+---
+ integration_api_lib.php |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/integration_api_lib.php b/integration_api_lib.php
+index 408b704..3c43b80 100644
+--- a/integration_api_lib.php
++++ b/integration_api_lib.php
+@@ -59,7 +59,7 @@ class BBIntegrationApi
+ 
+     protected function config_info() {
+         if (!self::$cached_config_info) {
+-            self::$thiscached_config_info = $this->api_request("config_info");
++            self::$cached_config_info = $this->api_request("config_info");
+         }
+         return self::$cached_config_info;
+     }
+-- 
+1.5.6.1.1071.g76fb
+

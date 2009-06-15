@@ -1,0 +1,261 @@
+From d1ecdb666cceceb7d4a17551fab8cc1e19091d0d Mon Sep 17 00:00:00 2001
+From: Till Klampaeckel <till@php.net>
+Date: Tue, 2 Jun 2009 18:22:39 +0200
+Subject: [PATCH] smaller changes (make vars static/persistent)
+
+---
+ .../integration-api-plugin.php     |   50 +++++----
+ integration_api_lib.php |  118 ++++++++++----------
+ 2 files changed, 86 insertions(+), 82 deletions(-)
+
+diff --git a/integration-api-plugin.php b/integration-api-plugin.php
+index 93c2c30..08858d8 100644
+--- a/integration-api-plugin.php
++++ b/integration-api-plugin.php
+@@ -1,7 +1,7 @@
+ <?php
+-class BBIntegrationApiPlugin {
+-    public $api;
+-
++class BBIntegrationApiPlugin
++{
++    public static $api = null;
+ 
+     public function __construct() {
+     }
+@@ -15,9 +15,10 @@ class BBIntegrationApiPlugin {
+      * There's probably a simpler way to do this.
+      */
+     function api() {
+-      if (! $this->api)
+-				$this->api = new BBIntegrationApi(bb_get_option('i_api_api_url'));
+-      	return $this->api;
++        if (!self::$api) {
++			self::$api = new BBIntegrationApi(bb_get_option('i_api_api_url'));
++		}
++      	return self::$api;
+     }
+ 
+     /*************************************************************
+@@ -28,21 +29,20 @@ class BBIntegrationApiPlugin {
+      * Add options for this plugin to the database.
+      */
+     function initialize_options() {
+-			echo('hi there');
+ 	
+ 	    if (bb_current_user_can('manage_options')) {
+-				bb_update_option('i_api_auto_create_user', false); // Should a new user be created automatically if not already in the bbPress database?
+-				bb_update_option('i_api_api_url', 'http://localhost:3000/integration_api/'); // Should a new user be created automatically if not already in the bbPress database?
+-				bb_update_option('i_api_user_username',  ''); // How do you store the username in your Rails app?
+-				bb_update_option('i_api_user_firstname', ''); // How do you store the first name in your Rails app?
+-				bb_update_option('i_api_user_lastname',  ''); // How do you store the last name in your Rails app?
+-				bb_update_option('i_api_user_email',     ''); // How do you store the user email in your Rails app?
+-				bb_update_option('i_api_user_website',   ''); // How do you store the user's website in your Rails app?
+-				bb_update_option('i_api_single_signon', false); // Automatically detect if a user is logged in?
+-				bb_update_option('i_api_user_nickname', '');
+-				bb_update_option('i_api_user_display_name', '');
+-				bb_update_option('i_api_user_description', '');
+-      }
++			bb_update_option('i_api_auto_create_user', false); // Should a new user be created automatically if not already in the bbPress database?
++			bb_update_option('i_api_api_url', 'http://localhost:3000/integration_api/'); // Should a new user be created automatically if not already in the bbPress database?
++			bb_update_option('i_api_user_username',  ''); // How do you store the username in your Rails app?
++			bb_update_option('i_api_user_firstname', ''); // How do you store the first name in your Rails app?
++			bb_update_option('i_api_user_lastname',  ''); // How do you store the last name in your Rails app?
++			bb_update_option('i_api_user_email',     ''); // How do you store the user email in your Rails app?
++			bb_update_option('i_api_user_website',   ''); // How do you store the user's website in your Rails app?
++			bb_update_option('i_api_single_signon', false); // Automatically detect if a user is logged in?
++			bb_update_option('i_api_user_nickname', '');
++			bb_update_option('i_api_user_display_name', '');
++			bb_update_option('i_api_user_description', '');
++        }
+     }
+     
+ 	/**
+@@ -164,9 +164,8 @@ class BBIntegrationApiPlugin {
+ 
+ 		if (bb_find_filename($file) == $page) {
+ 			return true;
+-		} else {
+-			return false;
+ 		}
++		return false;
+ 	}
+ 
+ 
+@@ -191,7 +190,7 @@ class BBIntegrationApiPlugin {
+      */
+     function redirect_to_login() {
+         header('Location: ' . $this->api()->login_url());
+-        exit();
++        exit;
+     }
+     
+ 
+@@ -213,7 +212,7 @@ class BBIntegrationApiPlugin {
+     /*
+      * Generate a random password.
+      */
+-    function _get_password($length = 10) {
++    private function _get_password($length = 10) {
+         return substr(md5(uniqid(microtime())), 0, $length);
+     }
+ 
+@@ -221,9 +220,12 @@ class BBIntegrationApiPlugin {
+     /*
+      * Create a new bbPress account for the specified username.
+      */
+-    function _create_user($username) {
++    private function _create_user($username) {
++
+         require_once(BB_PATH . BBINC . DIRECTORY_SEPARATOR . 'registration-functions.php');
++        
+         $api_info = (array) $this->api()->user_info();
++
+         $u = array();
+ 
+         $u['user_pass']      = $this->_get_password();
+diff --git a/integration_api_lib.php b/integration_api_lib.php
+index 5476bc8..408b704 100644
+--- a/integration_api_lib.php
++++ b/integration_api_lib.php
+@@ -17,76 +17,78 @@
+ 
+ require_once "HTTP/Request2.php";
+ 
+-class BBIntegrationApi {
+-  public $server_path;
+-  public $cached_config_info = false;
+-  public $request;
++class BBIntegrationApi
++{
++    public $server_path;
++    public static $cached_config_info = false;
++    public $request;
+ 
+-  public function __construct($url) {
+-    $this->server_path = $url;
+-  }
++    public function __construct($url) {
++        $this->server_path = $url;
++    }
+ 
+-  //------------- Public API ---------------
+-  public function is_logged_in() {
+-    return ! ($this->user_info() == NULL);
+-  }
++    //------------- Public API ---------------
++    public function is_logged_in() {
++        return ! ($this->user_info() == NULL);
++    }
+   
+-  public function user_info() {
+-    if ($this->rails_cookie_value() == NULL)
+-      return NULL;
+-    $json_data = $this->api_request("user/" . $this->rails_cookie_value());
+-    return $json_data->{'user'};
+-  }
++    public function user_info() {
++        if ($this->rails_cookie_value() == NULL) {
++            return NULL;
++        }
++        $json_data = $this->api_request("user/" . $this->rails_cookie_value());
++        return $json_data->{'user'};
++    }
+ 
+-  public function login_url() {
+-    return $this->config_info()->{'login_url'};
+-  }
++    public function login_url() {
++        return $this->config_info()->{'login_url'};
++    }
+ 
+-  public function logout_url() {
+-    return $this->config_info()->{'logout_url'};
+-  }
++    public function logout_url() {
++        return $this->config_info()->{'logout_url'};
++    }
+ 
+-  //------------- Private methods -------------
+-  protected function rails_cookie_value() {
+-    return $_COOKIE[$this->rails_cookie_name()];
+-  }
++    //------------- Private methods -------------
++    protected function rails_cookie_value() {
++        return $_COOKIE[$this->rails_cookie_name()];
++    }
+   
+-  protected function rails_cookie_name() {
+-    return $this->config_info()->{'cookie_name'};
+-  }
+-
+-  protected function config_info() {
+-    if (! $this->cached_config_info) {
+-      $this->cached_config_info = $this->api_request("config_info");
++    protected function rails_cookie_name() {
++        return $this->config_info()->{'cookie_name'};
+     }
+-    return $this->cached_config_info;
+-  }  
+ 
+-  /**
+-   * Sends the API request, using HTTP_Request2. In case of an error, we issue a
+-   * warning, which should be trapped in an error log.
+-   *
+-   * @string $query Most likely the endpoint.
+-   * @return mixed
+-   */ 
+-  protected function api_request($query) {
+-    if (empty($this->server_path)) {
+-      return;
++    protected function config_info() {
++        if (!self::$cached_config_info) {
++            self::$thiscached_config_info = $this->api_request("config_info");
++        }
++        return self::$cached_config_info;
+     }
++
++    /**
++     * Sends the API request, using HTTP_Request2. In case of an error, we issue a
++     * warning, which should be trapped in an error log.
++     *
++     * @string $query Most likely the endpoint.
++     * @return mixed
++     */ 
++    protected function api_request($query) {
++        if (empty($this->server_path)) {
++            return;
++        }
+     
+-    try {
+-      if (!($this->request instanceof HTTP_Request2)) {
+-        $request = new HTTP_Request2($this->server_path . $query);
+-      } else {
+-        $request = $this->request;
+-      }
+-      $response = $request->send();  
+-      $body     = json_decode($response->getBody());
++        try {
++            if (!($this->request instanceof HTTP_Request2)) {
++                $request = new HTTP_Request2($this->server_path . $query);
++            } else {
++                $request = $this->request;
++            }
++            $response = $request->send();  
++            $body     = json_decode($response->getBody());
+ 
+-      return $body;
++            return $body;
+ 
+-    } catch (HTTP_Request2_Exception $e) {
+-      trigger_error($e->getMessage(), E_USER_WARNING);
++        } catch (HTTP_Request2_Exception $e) {
++          trigger_error($e->getMessage(), E_USER_WARNING);
++        }
+     }
+-  }
+ }
+\ No newline at end of file
+-- 
+1.5.6.1.1071.g76fb
+
