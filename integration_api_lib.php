@@ -1,4 +1,4 @@
-<?
+<?php
 /*  Copyright (C) 2008 Robb Shecter ( greenfabric.com )
 
  This program is free software; you can redistribute it and/or modify
@@ -15,18 +15,18 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
-require_once "HTTP/Request.php";
+require_once "HTTP/Request2.php";
 
 class BBIntegrationApi {
   public $server_path;
   public $cached_config_info = false;
+  public $request;
 
   public function __construct($url) {
     $this->server_path = $url;
   }
 
   //------------- Public API ---------------
-
   public function is_logged_in() {
     return ! ($this->user_info() == NULL);
   }
@@ -45,29 +45,46 @@ class BBIntegrationApi {
   public function logout_url() {
     return $this->config_info()->{'logout_url'};
   }
-  
 
   //------------- Private methods -------------
-
-  function rails_cookie_value() {
+  protected function rails_cookie_value() {
     return $_COOKIE[$this->rails_cookie_name()];
   }
   
-  function rails_cookie_name() {
+  protected function rails_cookie_name() {
     return $this->config_info()->{'cookie_name'};
   }
 
-  function config_info() {
-    if (! $this->cached_config_info)
+  protected function config_info() {
+    if (! $this->cached_config_info) {
       $this->cached_config_info = $this->api_request("config_info");
+    }
     return $this->cached_config_info;
   }  
-  
-  function api_request($query) {
-    $r =& new HTTP_Request($this->server_path . $query);
-    $r->sendRequest();
-    return json_decode($r->getResponseBody());
-  }
 
+  /**
+   * Sends the API request, using HTTP_Request2. In case of an error, we issue a
+   * warning, which should be trapped in an error log.
+   *
+   * @string $query Most likely the endpoint.
+   * @return mixed
+   */ 
+  protected function api_request($query) {
+    if (empty($this->server_path)) {
+      return;
+    }
+    try {
+      if (!($this->request instanceof HTTP_Request2)) {
+        $request = new HTTP_Request2($this->server_path . $query);
+      } else {
+        $request = $this->request;
+      }
+      $response = $request->send();  
+      $body     = json_decode($response->getBody());
+
+      return $body;
+    } catch (HTTP_Request2_Exception $e) {
+      trigger_error($e->getMessage(), E_USER_WARNING);
+    }
+  }
 }
-?>
