@@ -37,248 +37,7 @@ require_once dirname(__FILE__) . '/integration_api_lib.php';
 
 $API_DEBUG = true;
 
-if (! class_exists('BBIntegrationApiPlugin')) {
-  class BBIntegrationApiPlugin {
-    public $api;
-
-    function IntegrationApiPlugin() {
-    }
-	  
-	
-    /*
-     * Do simple caching of the IntegrationApi instance.
-     * There's probably a simpler way to do this.
-     */
-    function api() {
-      if (! $this->api)
-				$this->api = new BBIntegrationApi(bb_get_option('i_api_api_url'));
-      	return $this->api;
-    }
-
-    /*************************************************************
-     * Plugin hooks
-     *************************************************************/
-    
-    /*
-     * Add options for this plugin to the database.
-     */
-    function initialize_options() {
-			echo('hi there');
-	
-	    if (bb_current_user_can('manage_options')) {
-				bb_update_option('i_api_auto_create_user', false); // Should a new user be created automatically if not already in the bbPress database?
-				bb_update_option('i_api_api_url', 'http://localhost:3000/integration_api/'); // Should a new user be created automatically if not already in the bbPress database?
-				bb_update_option('i_api_user_username',  ''); // How do you store the username in your Rails app?
-				bb_update_option('i_api_user_firstname', ''); // How do you store the first name in your Rails app?
-				bb_update_option('i_api_user_lastname',  ''); // How do you store the last name in your Rails app?
-				bb_update_option('i_api_user_email',     ''); // How do you store the user email in your Rails app?
-				bb_update_option('i_api_user_website',   ''); // How do you store the user's website in your Rails app?
-				bb_update_option('i_api_single_signon', false); // Automatically detect if a user is logged in?
-				bb_update_option('i_api_user_nickname', '');
-				bb_update_option('i_api_user_display_name', '');
-				bb_update_option('i_api_user_description', '');
-      }
-    }
-    
-		/**
-		 * Returns whether the plugin is active or not
-		 *
-		 * @return boolean
-		 * @author Sam Bauers
-		 **/
-		function isActive() {
-			// if ($this->enabled && $this->active) {
-			// 	return true;
-			// } else {
-			// 	return false;
-			// }
-			return true;
-		}
-
-	  /*
-	   * Check if the current person is logged in.  If so,
-	   * return the corresponding BB_User.
-	   */
-		function authenticate($username, $password) {
-			if ( $this->api()->is_logged_in() ) {
-				$username = $this->api()->user_info()->{bb_get_option('i_api_user_username')};
-				$password = $this->_get_password();
-			} else {
-				$this->redirect_to_login();
-			}
-			$user = bb_get_user_by_name($username);
-
-			if (! $user or $user->user_login != $username) {
-				// User is logged into the API, but there's no 
-				// bbPress user for them.  Are we allowed to 
-				// create one?
-				if ((bool) bb_get_option('i_api_auto_create_user')) {
-					$this->_create_user($username);
-					$user = bb_get_user_by_name($username);
-				} else {
-					// Bail out to avoid showing the login form
-					bb_die("User $username does not exist in the bbPress database and user auto-creation is disabled.");
-				}
-			}
-
-			wp_set_auth_cookie($user->ID, $remember);
-			do_action('bb_user_login', (int) $user->ID );
-			return new BB_User($user->ID);
-		}
-
-
-		/**
-		 * Disables standard registration
-		 *
-		 * @return void
-		 * @author Sam Bauers
-		 **/
-		function disableRegistration()
-		{
-			if ($this->isActive() && $this->options['disable_registration'] && $this->locationIs('register.php')) {
-				bb_die(__('Registration is disabled for this forum, please login using your LDAP username and password.'));
-			}
-		}
-
-
-		/**
-		 * Disables password recovery for users who have LDAP passwords
-		 *
-		 * @return void
-		 * @author Sam Bauers
-		 **/
-		function disablePasswordRecovery()
-		{
-			if ($this->isActive() && $this->locationIs('bb-reset-password.php')) {
-				$user_login = user_sanitize($_POST['user_login']);
-				if (!empty($user_login)) {
-					$user = bb_get_user_by_name($user_login);
-					bb_die(__('Password recovery is not possible for this account because it uses an LDAP username and password to login. To change your LDAP password, please contact your system administrator.'));
-				}
-			}
-		}
-
-
-		/**
-		 * Disables password editing for users who have LDAP passwords
-		 *
-		 * @return void
-		 * @author Sam Bauers
-		 **/
-		function disablePasswordEditing()
-		{
-			global $bb_current_user;
-
-			if ($this->isActive() && ($this->locationIs('profile.php') || $this->locationIs('profile-edit.php'))) {
-				add_filter('bb_user_has_cap', array($this, 'removePasswordCapability'), 10, 2);
-			}
-		}
-		
-
-		/**
-		 * Determines whether we are viewing the given page
-		 *
-		 * Mostly adapted from bb_get_location();
-		 *
-		 * @return boolean
-		 * @author Sam Bauers
-		 **/
-		function locationIs($page)
-		{
-			$names = array(
-				$_SERVER['PHP_SELF'],
-				$_SERVER['SCRIPT_FILENAME'],
-				$_SERVER['SCRIPT_NAME']
-			);
-
-			foreach ($names as $name) {
-				if (false !== strpos($name, '.php')) {
-					$file = $name;
-				}
-			}
-
-			if (bb_find_filename($file) == $page) {
-				return true;
-			} else {
-				return false;
-			}
-		}
-
-
-		/**
-		 * Removes the change password capability for the current user
-		 *
-		 * @return array
-		 * @author Sam Bauers
-		 **/
-		function removePasswordCapability($allcaps, $caps)
-		{
-			if ($caps[0] == 'change_password') {
-				unset($allcaps['change_password']);
-			}
-
-			return $allcaps;
-		}
-
-	  
-    /*
-     * Send the user to the login page given by the API.
-     */
-    function redirect_to_login() {
-      header('Location: ' . $this->api()->login_url());
-      exit();
-    }
-    
-
-    /*
-     * Generate a password for the user. This plugin does not
-     * require the user to enter this value, but we want to set it
-     * to something nonobvious.
-     */
-    function generate_password($username, $password1, $password2) {
-      $password1 = $password2 = $this->_get_password();
-    }
-
-
-    /*************************************************************
-     * Private methods
-     *************************************************************/
-    
-    
-    /*
-     * Generate a random password.
-     */
-    function _get_password($length = 10) {
-      return substr(md5(uniqid(microtime())), 0, $length);
-    }
-
-
-    /*
-     * Create a new bbPress account for the specified username.
-     */
-    function _create_user($username) {
-      require_once(BBINC . DIRECTORY_SEPARATOR . 'registration-functions.php');
-      $api_info = (array) $this->api()->user_info();
-      $u = array();
-
-      $u['user_pass']      = $this->_get_password();
-      $u['user_login']     = $username;
-      $u['user_email']     = $api_info[bb_get_option('i_api_user_email')];
-      $u['user_url']       = $api_info[bb_get_option('i_api_user_website')];
-      // $u['user_firstname'] = $api_info[bb_get_option('i_api_user_firstname')];
-      // $u['user_lastname']  = $api_info[bb_get_option('i_api_user_lastname')];
-      
-      // $u['nickname']       = $api_info[bb_get_option('i_api_user_nickname')];
-      // $u['display_name']   = $api_info[bb_get_option('i_api_user_display_name')];
-      // $u['description']    = $api_info[bb_get_option('i_api_user_description')];
- 
-			$u['id'] = bb_new_user( $u['user_login'], $u['user_email'], $u['user_url'] );
-			bb_update_user_password( $u['id'], $u['user_pass'] );
-    }
-    
-    
-	}
-}
+require_once dirname(__FILE__) . '/integration-api-plugin.php';
 
 // initialize the plugin
 $integration_api_plugin = new BBIntegrationApiPlugin();
@@ -289,19 +48,19 @@ if ($integration_api_plugin->isActive()) {
 	// initialize variables on activation
 	if (isset($_GET['action']) and $_GET['action'] == 'activate') {
 		add_action('bb_init', array($integration_api_plugin, 'initialize_options'));
-  }
+    }
 
 	add_action('bb_init', array($integration_api_plugin, 'disableRegistration'));
 	add_action('bb_init', array($integration_api_plugin, 'disablePasswordRecovery'));
 	add_action('bb_init', array($integration_api_plugin, 'disablePasswordEditing'));
 
-  /*
-   * Check if the current person is logged in.  If so,
-   * return the corresponding BB_User.
-   */
+    /*
+     * Check if the current person is logged in.  If so,
+     * return the corresponding BB_User.
+     */
 	if ( ! function_exists('bb_login') ) :
 		function bb_login($username, $password) {
-			$integration_api_plugin = new BBIntegrationApiPlugin();
+			$integration_api_plugin = $GLOBALS['integration_api_plugin']; //new BBIntegrationApiPlugin();
 			return $integration_api_plugin->authenticate($username, $password);
 		}
 	endif;
@@ -310,11 +69,11 @@ if ($integration_api_plugin->isActive()) {
 	// override logout function
 	if ( ! function_exists('bb_logout') ) :
 		function bb_logout() {
-			$integration_api_plugin = new BBIntegrationApiPlugin();
-	    bb_set_current_user(0);
-	    wp_clear_auth_cookie();
-	    header('Location: ' . $integration_api_plugin->api()->logout_url());
-	    exit();
+			$integration_api_plugin = $GLOBALS['integration_api_plugin']; //new BBIntegrationApiPlugin();
+	        bb_set_current_user(0);
+	        wp_clear_auth_cookie();
+	        header('Location: ' . $integration_api_plugin->api()->logout_url());
+	        exit();
 		}
 	endif;
 
@@ -325,43 +84,44 @@ if ($integration_api_plugin->isActive()) {
 	 * log them in or out to match the current state returned by the API.
 	 */
 	if ( ((bool)bb_get_option('i_api_single_signon')) && (! function_exists('bb_get_current_user')) ) :
-	  function bb_get_current_user() {
-	    global $bb_current_user;
+	    function bb_get_current_user() {
+	        global $bb_current_user;
 
-	    if ( defined('XMLRPC_REQUEST') && XMLRPC_REQUEST )
-	      return false;
+	        if ( defined('XMLRPC_REQUEST') && XMLRPC_REQUEST )
+	            return false;
 
-	    if ( ! empty($bb_current_user) )
-	      return $bb_current_user;
+	        if ( ! empty($bb_current_user) )
+	            return $bb_current_user;
 
-	    $api = new BBIntegrationApi(bb_get_option('i_api_api_url'));
+	        $api = new BBIntegrationApi(bb_get_option('i_api_api_url'));
 
-	    /*
-	     * If the API reports "logged out", make sure we're logged out in
-	     * bbPress as well.
-	     */
-	    if (! $api->is_logged_in()) {
-	      bb_set_current_user(0);
-	      wp_clear_auth_cookie();
-	      return false;
-	    }
-
-	    if ( ! $user = wp_validate_auth_cookie() ) {
-	      if ( empty($_COOKIE[LOGGED_IN_COOKIE]) || !$user = wp_validate_auth_cookie($_COOKIE[LOGGED_IN_COOKIE], 'logged_in') ) {
-					/*
-		 			  * The API reports "logged in", but we're not logged in to
-		 				* bbPress.  Therefore, here we force the log in.
-		 				*/
-					$plugin      = new BBIntegrationApiPlugin();
+    	    /*
+    	     * If the API reports "logged out", make sure we're logged out in
+    	     * bbPress as well.
+    	     */
+    	    if (! $api->is_logged_in()) {
+    	        bb_set_current_user(0);
+    	        wp_clear_auth_cookie();
+    	        return false;
+    	    }
+    
+    	    if ( ! $user = wp_validate_auth_cookie() ) {
+    	        if ( empty($_COOKIE[LOGGED_IN_COOKIE]) || !$user = wp_validate_auth_cookie($_COOKIE[LOGGED_IN_COOKIE], 'logged_in') ) {
+					/**
+		 			 * The API reports "logged in", but we're not logged in to
+		 			 * bbPress.  Therefore, here we force the log in.
+		 			 */
+					$plugin      = $GLOBALS['integration_api_plugin']; //new BBIntegrationApiPlugin();
 					$user_record = $plugin->authenticate($api->user_info()->{'nickname'}, "pass");
-					if ( is_wp_error($user_record) )
-		  			return false;
+					if ( is_wp_error($user_record) ) {
+                        return false;
+                    }
 					wp_set_auth_cookie($user_record->ID, false, false);
 					$user = $user_record->ID;
-	      }
-	    }
-			bb_set_current_user($user);
-	  }
+    	        }
+    	    }
+    		bb_set_current_user($user);
+    	}
 	endif;	
 	
 
@@ -371,27 +131,27 @@ if ($integration_api_plugin->isActive()) {
 	 * in" status.
 	 */
 	if ($API_DEBUG && (! function_exists('is_user_logged_in()'))) :
-	  function is_user_logged_in() {
-	    $result = '';
-	    $user = bb_get_current_user();
+	    function is_user_logged_in() {
+	        $result = '';
+	        $user = bb_get_current_user();
 
-	    if ( $user->id == 0 )
-	      $result = false;
-	    else
-	      $result = true;
+	        if ( $user->id == 0 )
+	            $result = false;
+	        else
+	            $result = true;
 
-	    $api = new BBIntegrationApi(bb_get_option('i_api_api_url'));
-	    if ($api->is_logged_in()) {
-	      if (! $result)
-		die ("Integration_API error: api yes, wp no.");
+	        $api = new BBIntegrationApi(bb_get_option('i_api_api_url'));
+	        if ($api->is_logged_in()) {
+	            if (!$result) {
+		            die ("Integration_API error: api yes, wp no.");
+		        }
+    	    } else {
+	            if ($result) {
+		            die("Integration_API error: api no, wp yes.");
+		        }
+	        }
+	        return $api->is_logged_in();
 	    }
-	    else {
-	      if ($result)
-		die("Integration_API error: api no, wp yes.");
-	    }
-
-	    return $api->is_logged_in();
-	  }
 	endif;
 
 }
@@ -433,7 +193,7 @@ function integration_api_admin_page_add() {
  *
  * @return string
  * @author Sam Bauers
- **/
+ */
 function integration_api_admin_page() {
 	$api_url           = bb_get_option('i_api_api_url');
 	$auto_create_user  = (bool) bb_get_option('i_api_auto_create_user');
@@ -607,85 +367,87 @@ function integration_api_admin_page() {
  * @return void
  * @author Sam Bauers
  **/
-function integration_api_admin_page_process() {
-	if (isset($_POST['submit'])) {
-		if ('integration_api_update' == $_POST['action']) {
-			
-			// API web service URL
-			if ($_POST['i_api_api_url']) {
-				bb_update_option('i_api_api_url', $_POST['i_api_api_url']);
-			}
-			
-			// Enable single sign-on
-			if ($_POST['i_api_single_signon']) {
-				bb_update_option('i_api_single_signon', $_POST['i_api_single_signon']);
-			} else {
-				bb_update_option('i_api_single_signon', '');
-			}
-			
-			// Automatically create accounts
-			if ($_POST['i_api_auto_create_user']) {
-				bb_update_option('i_api_auto_create_user', $_POST['i_api_auto_create_user']);
-			} else {
-				bb_update_option('i_api_auto_create_user', '');
-			}
+function integration_api_admin_page_process()
+{
+	if (!isset($_POST['submit'])) {
+	    return;
+	}
+	if ('integration_api_update' != $_POST['action']) {
+	    return;
+	}
+		
+	// API web service URL
+	if ($_POST['i_api_api_url']) {
+		bb_update_option('i_api_api_url', $_POST['i_api_api_url']);
+	}
+	
+	// Enable single sign-on
+	if ($_POST['i_api_single_signon']) {
+		bb_update_option('i_api_single_signon', $_POST['i_api_single_signon']);
+	} else {
+		bb_update_option('i_api_single_signon', '');
+	}
+	
+	// Automatically create accounts
+	if ($_POST['i_api_auto_create_user']) {
+		bb_update_option('i_api_auto_create_user', $_POST['i_api_auto_create_user']);
+	} else {
+		bb_update_option('i_api_auto_create_user', '');
+	}
 
-			// User data mapping - username
-			if ($_POST['i_api_user_username']) {
-				bb_update_option('i_api_user_username', $_POST['i_api_user_username']);
-			} else {
-				bb_update_option('i_api_user_username', '');
-			}
+	// User data mapping - username
+	if ($_POST['i_api_user_username']) {
+		bb_update_option('i_api_user_username', $_POST['i_api_user_username']);
+	} else {
+		bb_update_option('i_api_user_username', '');
+	}
 
-			// User data mapping - email
-			if ($_POST['i_api_user_email']) {
-				bb_update_option('i_api_user_email', $_POST['i_api_user_email']);
-			} else {
-				bb_update_option('i_api_user_email', '');
-			}
+	// User data mapping - email
+	if ($_POST['i_api_user_email']) {
+		bb_update_option('i_api_user_email', $_POST['i_api_user_email']);
+	} else {
+		bb_update_option('i_api_user_email', '');
+	}
 
-			// User data mapping - firstname
-			if ($_POST['i_api_user_firstname']) {
-				bb_update_option('i_api_user_firstname', $_POST['i_api_user_firstname']);
-			} else {
-				bb_update_option('i_api_user_firstname', '');
-			}
+	// User data mapping - firstname
+	if ($_POST['i_api_user_firstname']) {
+		bb_update_option('i_api_user_firstname', $_POST['i_api_user_firstname']);
+	} else {
+		bb_update_option('i_api_user_firstname', '');
+	}
 
-			// User data mapping - lastname
-			if ($_POST['i_api_user_lastname']) {
-				bb_update_option('i_api_user_lastname', $_POST['i_api_user_lastname']);
-			} else {
-				bb_update_option('i_api_user_lastname', '');
-			}
+	// User data mapping - lastname
+	if ($_POST['i_api_user_lastname']) {
+		bb_update_option('i_api_user_lastname', $_POST['i_api_user_lastname']);
+	} else {
+		bb_update_option('i_api_user_lastname', '');
+	}
 
-			// User data mapping - nickname
-			if ($_POST['i_api_user_nickname']) {
-				bb_update_option('i_api_user_nickname', $_POST['i_api_user_nickname']);
-			} else {
-				bb_update_option('i_api_user_nickname', '');
-			}
+	// User data mapping - nickname
+	if ($_POST['i_api_user_nickname']) {
+		bb_update_option('i_api_user_nickname', $_POST['i_api_user_nickname']);
+	} else {
+		bb_update_option('i_api_user_nickname', '');
+	}
 
-			// User data mapping - display_name
-			if ($_POST['i_api_user_display_name']) {
-				bb_update_option('i_api_user_display_name', $_POST['i_api_user_display_name']);
-			} else {
-				bb_update_option('i_api_user_display_name', '');
-			}
+	// User data mapping - display_name
+	if ($_POST['i_api_user_display_name']) {
+		bb_update_option('i_api_user_display_name', $_POST['i_api_user_display_name']);
+	} else {
+		bb_update_option('i_api_user_display_name', '');
+	}
 
-			// User data mapping - website
-			if ($_POST['i_api_user_website']) {
-				bb_update_option('i_api_user_website', $_POST['i_api_user_website']);
-			} else {
-				bb_update_option('i_api_user_website', '');
-			}
+	// User data mapping - website
+	if ($_POST['i_api_user_website']) {
+		bb_update_option('i_api_user_website', $_POST['i_api_user_website']);
+	} else {
+		bb_update_option('i_api_user_website', '');
+	}
 
-			// User data mapping - description
-			if ($_POST['i_api_user_description']) {
-				bb_update_option('i_api_user_description', $_POST['i_api_user_description']);
-			} else {
-				bb_update_option('i_api_user_description', '');
-			}
-
-		}
+	// User data mapping - description
+	if ($_POST['i_api_user_description']) {
+		bb_update_option('i_api_user_description', $_POST['i_api_user_description']);
+	} else {
+		bb_update_option('i_api_user_description', '');
 	}
 }
