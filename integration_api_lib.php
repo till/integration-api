@@ -32,12 +32,22 @@ class BBIntegrationApi
     public function is_logged_in() {
         return ! ($this->user_info() == NULL);
     }
-  
+
+    /**
+     * Get the user's info from the rails API
+     *
+     * @return string
+     * @uses self::$user_info
+     * @uses self::rails_cookie_value()
+     * @uses self::api_request()
+     * @todo Mathias sollte netter sein.
+     * @todo Maybe cache user_info to persist across request.
+     */
     public function user_info() {
         if ($this->rails_cookie_value() == NULL) {
             return null;
         }
-        if (!self::$user_info)) {
+        if (!self::$user_info) {
             $json_data = $this->api_request("user/" . $this->rails_cookie_value());
             self::$user_info = $json_data->{'user'};
         }
