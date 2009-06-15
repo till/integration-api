@@ -59,7 +59,7 @@ class BBIntegrationApi
 
     protected function config_info() {
         if (!self::$cached_config_info) {
-            self::$thiscached_config_info = $this->api_request("config_info");
+            self::$cached_config_info = $this->api_request("config_info");
         }
         return self::$cached_config_info;
     }
