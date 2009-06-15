@@ -62,6 +62,13 @@ class BBIntegrationApi
         return $this->config_info()->{'logout_url'};
     }
 
+    public function config_info() {
+        if (!self::$cached_config_info) {
+            self::$cached_config_info = $this->api_request("config_info");
+        }
+        return self::$cached_config_info;
+    }
+
     //------------- Private methods -------------
     protected function rails_cookie_value() {
         return $_COOKIE[$this->rails_cookie_name()];
@@ -69,13 +76,6 @@ class BBIntegrationApi
   
     protected function rails_cookie_name() {
         return $this->config_info()->{'cookie_name'};
-    }
-
-    protected function config_info() {
-        if (!self::$cached_config_info) {
-            self::$cached_config_info = $this->api_request("config_info");
-        }
-        return self::$cached_config_info;
     }
 
     /**
