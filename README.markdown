@@ -1,10 +1,21 @@
 # integration-api
 
-This is a small plugin to integrate a BBPress installation with a RoR application
+This is a small plugin to integrate a bbPress installation with a RoR application
 to provide the user with a single-sign-on across the two applications. Totally
 sweet, and so on. ;-)
 
-# changelog / readme
+# Changelog / Readme
+
+## Installation
+
+To install:
+
+ * get the Rails plugin ([link][0] and [link][1]) working
+ * checkout a copy of this repo ('integration-api') to `bbpress/my-plugins folder`
+ * configure the settings for the bbPress Integration plugin
+
+[0]: http://agilewebdevelopment.com/plugins/integration_api
+[1]: http://greenfabric.com/page/integration_api_home_page
 
 ## CREDITS 
 
