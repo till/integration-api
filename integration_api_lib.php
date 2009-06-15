@@ -89,10 +89,28 @@ class BBIntegrationApi
         if (empty($this->server_path)) {
             return;
         }
-    
+        
         try {
             if (!($this->request instanceof HTTP_Request2)) {
+                
+                /**
+                 * Parse server_path to extract an optional username and
+                 * password for basic auth.
+                 */
+                $_url = new Net_Url2($this->server_path);
+                
+                $basic_auth_user = $_url->getUser();
+                $basic_auth_pass = $_url->getPassword();
+                
                 $request = new HTTP_Request2($this->server_path . $query);
+                if ($basic_auth_user !== false) {
+                    if ($basic_auth_pass !== false) {
+                        $request->setAuth($basic_auth_user, $basic_auth_pass);
+                    } else {
+                        $request->setAuth($basic_auth_user);
+                    }
+                }
+                
             } else {
                 $request = $this->request;
             }
@@ -102,7 +120,7 @@ class BBIntegrationApi
             return $body;
 
         } catch (HTTP_Request2_Exception $e) {
-          trigger_error($e->getMessage(), E_USER_WARNING);
+            trigger_error($e->getMessage(), E_USER_WARNING);
         }
     }
 }
