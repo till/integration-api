@@ -73,6 +73,7 @@ class BBIntegrationApi {
     if (empty($this->server_path)) {
       return;
     }
+    
     try {
       if (!($this->request instanceof HTTP_Request2)) {
         $request = new HTTP_Request2($this->server_path . $query);
@@ -83,6 +84,7 @@ class BBIntegrationApi {
       $body     = json_decode($response->getBody());
 
       return $body;
+
     } catch (HTTP_Request2_Exception $e) {
       trigger_error($e->getMessage(), E_USER_WARNING);
     }
