@@ -17,76 +17,78 @@
 
 require_once "HTTP/Request2.php";
 
-class BBIntegrationApi {
-  public $server_path;
-  public $cached_config_info = false;
-  public $request;
+class BBIntegrationApi
+{
+    public $server_path;
+    public static $cached_config_info = false;
+    public $request;
 
-  public function __construct($url) {
-    $this->server_path = $url;
-  }
-
-  //------------- Public API ---------------
-  public function is_logged_in() {
-    return ! ($this->user_info() == NULL);
-  }
-  
-  public function user_info() {
-    if ($this->rails_cookie_value() == NULL)
-      return NULL;
-    $json_data = $this->api_request("user/" . $this->rails_cookie_value());
-    return $json_data->{'user'};
-  }
-
-  public function login_url() {
-    return $this->config_info()->{'login_url'};
-  }
-
-  public function logout_url() {
-    return $this->config_info()->{'logout_url'};
-  }
-
-  //------------- Private methods -------------
-  protected function rails_cookie_value() {
-    return $_COOKIE[$this->rails_cookie_name()];
-  }
-  
-  protected function rails_cookie_name() {
-    return $this->config_info()->{'cookie_name'};
-  }
-
-  protected function config_info() {
-    if (! $this->cached_config_info) {
-      $this->cached_config_info = $this->api_request("config_info");
+    public function __construct($url) {
+        $this->server_path = $url;
     }
-    return $this->cached_config_info;
-  }  
 
-  /**
-   * Sends the API request, using HTTP_Request2. In case of an error, we issue a
-   * warning, which should be trapped in an error log.
-   *
-   * @string $query Most likely the endpoint.
-   * @return mixed
-   */ 
-  protected function api_request($query) {
-    if (empty($this->server_path)) {
-      return;
+    //------------- Public API ---------------
+    public function is_logged_in() {
+        return ! ($this->user_info() == NULL);
     }
+  
+    public function user_info() {
+        if ($this->rails_cookie_value() == NULL) {
+            return NULL;
+        }
+        $json_data = $this->api_request("user/" . $this->rails_cookie_value());
+        return $json_data->{'user'};
+    }
+
+    public function login_url() {
+        return $this->config_info()->{'login_url'};
+    }
+
+    public function logout_url() {
+        return $this->config_info()->{'logout_url'};
+    }
+
+    //------------- Private methods -------------
+    protected function rails_cookie_value() {
+        return $_COOKIE[$this->rails_cookie_name()];
+    }
+  
+    protected function rails_cookie_name() {
+        return $this->config_info()->{'cookie_name'};
+    }
+
+    protected function config_info() {
+        if (!self::$cached_config_info) {
+            self::$thiscached_config_info = $this->api_request("config_info");
+        }
+        return self::$cached_config_info;
+    }
+
+    /**
+     * Sends the API request, using HTTP_Request2. In case of an error, we issue a
+     * warning, which should be trapped in an error log.
+     *
+     * @string $query Most likely the endpoint.
+     * @return mixed
+     */ 
+    protected function api_request($query) {
+        if (empty($this->server_path)) {
+            return;
+        }
     
-    try {
-      if (!($this->request instanceof HTTP_Request2)) {
-        $request = new HTTP_Request2($this->server_path . $query);
-      } else {
-        $request = $this->request;
-      }
-      $response = $request->send();  
-      $body     = json_decode($response->getBody());
+        try {
+            if (!($this->request instanceof HTTP_Request2)) {
+                $request = new HTTP_Request2($this->server_path . $query);
+            } else {
+                $request = $this->request;
+            }
+            $response = $request->send();  
+            $body     = json_decode($response->getBody());
 
-      return $body;
+            return $body;
 
-    } catch (HTTP_Request2_Exception $e) {
-      trigger_error($e->getMessage(), E_USER_WARNING);
+        } catch (HTTP_Request2_Exception $e) {
+          trigger_error($e->getMessage(), E_USER_WARNING);
+        }
     }
-  }
 }

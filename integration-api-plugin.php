@@ -1,7 +1,7 @@
 <?php
-class BBIntegrationApiPlugin {
-    public $api;
-
+class BBIntegrationApiPlugin
+{
+    public static $api = null;
 
     public function __construct() {
     }
@@ -15,9 +15,10 @@ class BBIntegrationApiPlugin {
      * There's probably a simpler way to do this.
      */
     function api() {
-      if (! $this->api)
-				$this->api = new BBIntegrationApi(bb_get_option('i_api_api_url'));
-      	return $this->api;
+        if (!self::$api) {
+			self::$api = new BBIntegrationApi(bb_get_option('i_api_api_url'));
+		}
+      	return self::$api;
     }
 
     /*************************************************************
@@ -28,21 +29,20 @@ class BBIntegrationApiPlugin {
      * Add options for this plugin to the database.
      */
     function initialize_options() {
-			echo('hi there');
 	
 	    if (bb_current_user_can('manage_options')) {
-				bb_update_option('i_api_auto_create_user', false); // Should a new user be created automatically if not already in the bbPress database?
-				bb_update_option('i_api_api_url', 'http://localhost:3000/integration_api/'); // Should a new user be created automatically if not already in the bbPress database?
-				bb_update_option('i_api_user_username',  ''); // How do you store the username in your Rails app?
-				bb_update_option('i_api_user_firstname', ''); // How do you store the first name in your Rails app?
-				bb_update_option('i_api_user_lastname',  ''); // How do you store the last name in your Rails app?
-				bb_update_option('i_api_user_email',     ''); // How do you store the user email in your Rails app?
-				bb_update_option('i_api_user_website',   ''); // How do you store the user's website in your Rails app?
-				bb_update_option('i_api_single_signon', false); // Automatically detect if a user is logged in?
-				bb_update_option('i_api_user_nickname', '');
-				bb_update_option('i_api_user_display_name', '');
-				bb_update_option('i_api_user_description', '');
-      }
+			bb_update_option('i_api_auto_create_user', false); // Should a new user be created automatically if not already in the bbPress database?
+			bb_update_option('i_api_api_url', 'http://localhost:3000/integration_api/'); // Should a new user be created automatically if not already in the bbPress database?
+			bb_update_option('i_api_user_username',  ''); // How do you store the username in your Rails app?
+			bb_update_option('i_api_user_firstname', ''); // How do you store the first name in your Rails app?
+			bb_update_option('i_api_user_lastname',  ''); // How do you store the last name in your Rails app?
+			bb_update_option('i_api_user_email',     ''); // How do you store the user email in your Rails app?
+			bb_update_option('i_api_user_website',   ''); // How do you store the user's website in your Rails app?
+			bb_update_option('i_api_single_signon', false); // Automatically detect if a user is logged in?
+			bb_update_option('i_api_user_nickname', '');
+			bb_update_option('i_api_user_display_name', '');
+			bb_update_option('i_api_user_description', '');
+        }
     }
     
 	/**
@@ -164,9 +164,8 @@ class BBIntegrationApiPlugin {
 
 		if (bb_find_filename($file) == $page) {
 			return true;
-		} else {
-			return false;
 		}
+		return false;
 	}
 
 
@@ -191,7 +190,7 @@ class BBIntegrationApiPlugin {
      */
     function redirect_to_login() {
         header('Location: ' . $this->api()->login_url());
-        exit();
+        exit;
     }
     
 
@@ -213,7 +212,7 @@ class BBIntegrationApiPlugin {
     /*
      * Generate a random password.
      */
-    function _get_password($length = 10) {
+    private function _get_password($length = 10) {
         return substr(md5(uniqid(microtime())), 0, $length);
     }
 
@@ -221,9 +220,12 @@ class BBIntegrationApiPlugin {
     /*
      * Create a new bbPress account for the specified username.
      */
-    function _create_user($username) {
+    private function _create_user($username) {
+
         require_once(BB_PATH . BBINC . DIRECTORY_SEPARATOR . 'registration-functions.php');
+        
         $api_info = (array) $this->api()->user_info();
+
         $u = array();
 
         $u['user_pass']      = $this->_get_password();
